@@ -6,18 +6,18 @@ uses
      System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
      FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.ExtCtrls, FMX.Edit,
-     FMX.Memo.Types, FMX.ScrollBox, FMX.Memo;
+     FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media;
 
 const
      MAX_FILE_SIZE = 128 * 1024 * 1024;
 
      IMG_OFS = $00000000;
 
-     GAME_PATH = 'C:\Games\Iron Assault\IRON\';
+     GAME_PATH = 'C:\Games\Iron Assault\IRON';
 
-     VID_FN = GAME_PATH + 'IRON_CD\FILMS\RESCUE.ANI';
-     PAL_FN = GAME_PATH + 'IRON_CD\FILMS\FILM.LZ';
-     SND_FN = GAME_PATH + 'IRON_CD\E_FDIGI\RESCUE.RAW';
+//     VID_FN = 'IRON_CD\FILMS\RESCUE.ANI';
+     PAL_FN = 'IRON_CD\FILMS\FILM.LZ';
+//     SND_FN = 'IRON_CD\E_FDIGI\RESCUE.RAW';
 
      imgWidth = 256;
      imgHeight = 83;
@@ -33,21 +33,47 @@ type
           ImageViewer1: TImageViewer;
           btnPlay: TButton;
           mInfo: TMemo;
+          Label1: TLabel;
+          edGamePath: TEdit;
+          btnSelDir: TButton;
+          GameFilesList: TListBox;
+          rbEnglish: TRadioButton;
+          rbFrench: TRadioButton;
+          rbGerman: TRadioButton;
+          Label2: TLabel;
+          lblStatus: TLabel;
+          Label3: TLabel;
+          btnStop: TButton;
+          MediaPlayer1: TMediaPlayer;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
+          procedure btnSelDirClick(Sender: TObject);
+          procedure FormCreate(Sender: TObject);
+          procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
+          procedure btnStopClick(Sender: TObject);
      protected
+          GamePath, VideoFN, SoundFN: string;
+          HasSound: Boolean;
           Data: array of Byte;
           DataOfs: Integer;
           src, tgt: TRectF;
           Palette: array [0..767] of Byte;
           Snd: TMemoryStream;
 
-          class var Stopped: Boolean;
+          class var Stopping: Boolean;
+          class var Playing: Boolean;
      public
+          procedure ShowError(const Msg: string);
+          procedure ShowStatus(const Msg: string);
+
+          procedure SetGamePath(const Dir: string);
+          procedure ScanForGameFiles;
 
           procedure LoadPalette;
           procedure LoadMovie;
           procedure LoadSoundFromRawFile;
+
+          function GetLangSoundFN: string;
 
           procedure InitFrame;
           function GetNextFrame: TBitmap;
@@ -59,6 +85,9 @@ type
           procedure DoPlay;
 
           procedure ShowInfo(const frames, msec: Int64);
+
+          procedure DisableLangs;
+          procedure EnableLangs;
      end;
 
      EFileTooLarge = class(EStreamError)
@@ -72,8 +101,11 @@ var
 implementation
 
 uses
-     System.Threading, System.Diagnostics, System.TimeSpan,
-     Winapi.MMSystem;
+     System.Threading, System.Diagnostics, System.IOUtils, System.TimeSpan,
+     FMX.Dialogs.Win, Winapi.Windows, Winapi.MMSystem;
+
+type
+     TBitmap = FMX.Graphics.TBitmap;
 
 {$R *.fmx}
 
@@ -102,7 +134,7 @@ begin
           cbSize := 0;
      end;
 
-     FS := TFileStream.Create(SND_FN, fmOpenRead);
+     FS := TFileStream.Create(GetLangSoundFN, fmOpenRead);
      try
           DataCount := FS.Size; // sound data
 
@@ -135,14 +167,41 @@ end;
 procedure TForm1.btnPlayClick(Sender: TObject);
 begin
      btnPlay.Enabled := False;
+     btnStop.Enabled := True;
      LoadPalette;
      LoadMovie;
-     LoadSoundFromRawFile;
+     if HasSound then
+          LoadSoundFromRawFile;
      InitFrame;
 
-     Stopped := False;
+     Stopping := False;
      RunPlayThread;
-     PlayMovieSound;
+     if HasSound then
+          PlayMovieSound;
+end;
+
+procedure TForm1.btnSelDirClick(Sender: TObject);
+var
+     FDir: string;
+begin
+     FDir := GAME_PATH;
+     if SelectDirectory('Select Directory', FDir, FDir) then
+     begin
+          SetGamePath(FDir);
+     end;
+end;
+
+procedure TForm1.btnStopClick(Sender: TObject);
+begin
+     if Playing and not Stopping then
+          Stopping := True;
+end;
+
+procedure TForm1.DisableLangs;
+begin
+     rbEnglish.Enabled := False;
+     rbFrench.Enabled := False;
+     rbGerman.Enabled := False;
 end;
 
 procedure TForm1.DoPlay;
@@ -157,9 +216,9 @@ begin
      frm := 0;
      repeat
           FrameStart := Stopwatch.ElapsedMilliseconds;
-          if Stopped then
+          if Stopping then
           begin
-               Stopped := False;
+               Stopping := False;
                Exit;
           end;
           bmp := GetNextFrame;
@@ -170,11 +229,13 @@ begin
                Sleep(FPS_DELAY - Delay);
      until bmp = nil;
      Stopwatch.Stop;
-     TThread.Synchronize(nil,
+     TThread.Queue(nil,
           procedure
           begin
+               Playing := False;
                ShowInfo(frm, Stopwatch.ElapsedMilliseconds);
-               btnPlay.Enabled := True;
+               btnPlay.Enabled := GameFilesList.Selected <> nil;
+               btnStop.Enabled := False;
           end
      );
 end;
@@ -194,13 +255,27 @@ begin
           );
 end;
 
+procedure TForm1.EnableLangs;
+begin
+     rbEnglish.Enabled := True;
+     rbFrench.Enabled := True;
+     rbGerman.Enabled := True;
+end;
+
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-     if not Stopped then
+     if not Stopping then
      begin
-          Stopped := True;
+          Stopping := True;
           Sleep(200);
      end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+     Playing := False;
+     Stopping := False;
+     SetGamePath(GAME_PATH);
 end;
 
 (*
@@ -226,6 +301,38 @@ end;
  ===============================================
 *)
 
+procedure TForm1.GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
+begin
+     if Item = nil then
+          Exit;
+     VideoFN := TPath.Combine(GamePath, 'IRON_CD\FILMS\' + Item.TagString + '.ANI');
+     if Item.Tag = 1 then
+     begin
+          HasSound := True;
+          SoundFN := Item.TagString + '.RAW';
+          EnableLangs;
+     end
+     else
+     begin
+          HasSound := False;
+          SoundFN := '';
+          DisableLangs;
+     end;
+     btnPlay.Enabled := not (Playing or Stopping);
+end;
+
+function TForm1.GetLangSoundFN: string;
+var
+     L: Char;
+begin
+     L := 'E';
+     if rbFrench.IsChecked then
+          L := 'F';
+     if rbGerman.IsChecked then
+          L := 'G';
+     Result := TPath.Combine(GamePath, 'IRON_CD\' + L + '_FDIGI\' + SoundFN);
+end;
+
 function TForm1.GetNextFrame: TBitmap;
 const
      lWidth = imgWidth div 4;
@@ -245,6 +352,7 @@ begin
      if i >= Length(Data) then
           Exit(nil);
      Clr.A := 255;
+     MediaPlayer1.Media.
      bmp := TBitmap.Create;
      try
           bmp.Width := imgWidth;
@@ -331,10 +439,7 @@ var
      VFS: TFileStream;
      VFSz: Int64;
 begin
-     VFS := TFileStream.Create(
-          VID_FN,
-          fmOpenRead
-     );
+     VFS := TFileStream.Create(VideoFN, fmOpenRead);
      try
           VFSz := VFS.Size;
           if VFSz >= MAX_FILE_SIZE then
@@ -353,7 +458,7 @@ var
      i: Integer;
 begin
      PFS := TFileStream.Create(
-          PAL_FN,
+          TPath.Combine(GamePath, PAL_FN),
           fmOpenRead
      );
      try
@@ -383,7 +488,81 @@ begin
           end
      );
      playThread.Priority := TThreadPriority.tpHighest;
+     Playing := True;
      playThread.Start;
+end;
+
+function FileSize(const aFilename: String): Int64;
+var
+     info: TWin32FileAttributeData;
+begin
+     result := -1;
+
+     if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
+          Exit;
+
+     result := Int64(info.nFileSizeLow) or Int64(info.nFileSizeHigh shl 32);
+end;
+
+procedure TForm1.ScanForGameFiles;
+var
+     inx: Integer;
+     CDDir, FilmsDir, FN, MN, LN, SN: string;
+     LHasSound: Boolean;
+begin
+     lblStatus.Visible := False;
+     GameFilesList.Clear;
+     CDDir := TPath.Combine(GamePath, 'IRON_CD');
+     FilmsDir := TPath.Combine(CDDir, 'FILMS');
+     if not (TDirectory.Exists(CDDir) and TDirectory.Exists(FilmsDir)) then
+     begin
+          ShowError('Game files not found!');
+          Exit;
+     end;
+     ShowStatus('OK, game files found.');
+     for FN in TDirectory.GetFiles(FilmsDir, '*.ANI') do
+     if (FileSize(FN) mod 10624) = 0 then     
+     begin
+          MN := TPath.GetFileNameWithoutExtension(FN);
+          SN := TPath.Combine(CDDir, 'E_FDIGI');
+          SN := TPath.Combine(SN, MN + '.RAW');
+          if TFile.Exists(SN) then
+          begin
+               LN := MN + ' *';
+               LHasSound := True;
+          end
+          else
+          begin
+               LN := MN;
+               LHasSound := False;
+          end;
+          inx := GameFilesList.Items.Add(LN);
+          with GameFilesList.ListItems[inx] do
+          begin
+               TagString := MN;
+               if LHasSound then
+                    Tag := 1
+               else
+                    Tag := 0;
+          end;
+     end;
+end;
+
+procedure TForm1.SetGamePath(const Dir: string);
+begin
+     GamePath := Dir;
+     edGamePath.Text := GamePath;
+     ScanForGameFiles;
+end;
+
+procedure TForm1.ShowError(const Msg: string);
+begin
+     with lblStatus do
+     begin
+          TextSettings.FontColor := TAlphaColors.Coral;
+          Text := Msg;
+          Visible := True;
+     end;
 end;
 
 procedure TForm1.ShowInfo(const frames, msec: Int64);
@@ -392,6 +571,16 @@ var
 begin
      sec := Double(msec) / 1000;
      mInfo.Lines.Add(Format(FMT_MOVIE_INFO, [frames, sec, Double(frames) / sec]));
+end;
+
+procedure TForm1.ShowStatus(const Msg: string);
+begin
+     with lblStatus do
+     begin
+          TextSettings.FontColor := TAlphaColors.Darkgreen;
+          Text := Msg;
+          Visible := True;
+     end;
 end;
 
 { EFileTooLarge }
