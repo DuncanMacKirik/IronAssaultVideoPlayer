@@ -6,7 +6,8 @@ uses
      System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
      FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.ExtCtrls, FMX.Edit,
-     FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media;
+     FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media,
+  FMX.Objects;
 
 const
      MAX_FILE_SIZE = 128 * 1024 * 1024;
@@ -53,6 +54,7 @@ type
           btnStop: TButton;
           MPlayer: TMediaPlayer;
           cbRedPalette: TCheckBox;
+    Image1: TImage;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
