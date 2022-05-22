@@ -15,18 +15,24 @@ const
 
      GAME_PATH = 'C:\Games\Iron Assault\IRON';
 
-//     VID_FN = 'IRON_CD\FILMS\RESCUE.ANI';
      PAL_FN = 'IRON_CD\FILMS\FILM.LZ';
-//     SND_FN = 'IRON_CD\E_FDIGI\RESCUE.RAW';
 
      imgWidth = 256;
      imgHeight = 83;
-     FPS_DELAY = 70; //34;
+     FPS_DELAY = 70;
+     AUDIO_DELAY = 750;
+     AUDIO_SAMPLE_RATE = 11025; // Hz
+     AUDIO_SKIP_COEF = 0.00128;
 
      FMT_MOVIE_INFO = '%d frames, %f seconds'#13'%f frames per second.';
 
      ERR_FILE_TOO_LARGE = 'File is too large!';
      ERR_CANNOT_MAP_BITMAP_DATA = 'Cannot map bitmap data!';
+
+     OPT_DYNAMIC_DELAYS = True;
+     OPT_USE_WIN32_SOUND = True;
+     OPT_USE_AUDIO_SKIP = True;
+     OPT_DYNAMIC_SKIPS = True;
 
 type
      TForm1 = class(TForm)
@@ -44,7 +50,7 @@ type
           lblStatus: TLabel;
           Label3: TLabel;
           btnStop: TButton;
-          MediaPlayer1: TMediaPlayer;
+          MPlayer: TMediaPlayer;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
@@ -53,12 +59,16 @@ type
           procedure btnStopClick(Sender: TObject);
      protected
           GamePath, VideoFN, SoundFN: string;
-          HasSound: Boolean;
+          HasAudio: Boolean;
           Data: array of Byte;
           DataOfs: Integer;
           src, tgt: TRectF;
           Palette: array [0..767] of Byte;
           Snd: TMemoryStream;
+          SkipBuf: array of Byte;
+          SkipCount: Integer;
+          DynDelay: Integer;
+          videoThread: TThread;
 
           class var Stopping: Boolean;
           class var Playing: Boolean;
@@ -71,7 +81,8 @@ type
 
           procedure LoadPalette;
           procedure LoadMovie;
-          procedure LoadSoundFromRawFile;
+
+          procedure InitSkipBuffer(Duration: Integer = 0);
 
           function GetLangSoundFN: string;
 
@@ -79,9 +90,13 @@ type
           function GetNextFrame: TBitmap;
           procedure DrawFrame(bmp: TBitmap);
 
-          procedure RunPlayThread;
-          procedure PlayMovieSound;
+          procedure PrepareVideo;
+          procedure PrepareAudio;
 
+          procedure StartVideo;
+          procedure StartAudio;
+
+          procedure StopAudio;
           procedure DoPlay;
 
           procedure ShowInfo(const frames, msec: Int64);
@@ -109,10 +124,10 @@ type
 
 {$R *.fmx}
 
-procedure TForm1.LoadSoundFromRawFile;
+procedure TForm1.PrepareAudio;
 const
      Mono: Word = $0001;
-     SampleRate: Integer = 11025; // 8000, 11025, 22050, or 44100
+     SampleRate: Integer = AUDIO_SAMPLE_RATE; // 8000, 11025, 22050, or 44100
      RiffId: AnsiString = 'RIFF';
      WaveId: AnsiString = 'WAVE';
      FmtId: AnsiString = 'fmt ';
@@ -138,6 +153,16 @@ begin
      try
           DataCount := FS.Size; // sound data
 
+          if OPT_USE_AUDIO_SKIP then
+          begin
+               if OPT_DYNAMIC_SKIPS then
+                    InitSkipBuffer(Trunc(Single(DataCount) * AUDIO_SKIP_COEF));
+               Inc(DataCount, SkipCount);
+          end;
+
+          if OPT_DYNAMIC_DELAYS then
+               DynDelay := Trunc((Single(DataCount)*1000 / AUDIO_SAMPLE_RATE) / (Length(Data) / 10624));
+
           if DataCount >= MAX_FILE_SIZE then
                raise EFileTooLarge.Create;
 
@@ -156,12 +181,29 @@ begin
                Write(WaveFormatEx, SizeOf(TWaveFormatEx)); // WaveFormatEx record
                Write(DataId[1], Length(DataId)); // 'data'
                Write(DataCount, SizeOf(DWORD)); // sound data size
-               CopyFrom(FS);
+               if OPT_USE_AUDIO_SKIP then
+                    Write(SkipBuf[0], SkipCount);
+               CopyFrom(FS, FS.Size);
           end;
      finally
           FreeAndNil(FS);
      end;
      Snd := MS;
+end;
+
+procedure TForm1.PrepareVideo;
+begin
+     videoThread := TThread.CreateAnonymousThread(
+          procedure
+          begin
+               DoPlay;
+          end
+     );
+     with videoThread do
+     begin
+          Priority := TThreadPriority.tpHighest;
+          FreeOnTerminate := True;
+     end;
 end;
 
 procedure TForm1.btnPlayClick(Sender: TObject);
@@ -170,14 +212,15 @@ begin
      btnStop.Enabled := True;
      LoadPalette;
      LoadMovie;
-     if HasSound then
-          LoadSoundFromRawFile;
      InitFrame;
+     PrepareVideo;
+     if HasAudio then
+          PrepareAudio;
 
      Stopping := False;
-     RunPlayThread;
-     if HasSound then
-          PlayMovieSound;
+     StartVideo;
+     if HasAudio then
+          StartAudio;
 end;
 
 procedure TForm1.btnSelDirClick(Sender: TObject);
@@ -194,7 +237,11 @@ end;
 procedure TForm1.btnStopClick(Sender: TObject);
 begin
      if Playing and not Stopping then
+     begin
           Stopping := True;
+          if HasAudio then
+               StopAudio;
+     end;
 end;
 
 procedure TForm1.DisableLangs;
@@ -219,14 +266,16 @@ begin
           if Stopping then
           begin
                Stopping := False;
-               Exit;
+               Break;
           end;
           bmp := GetNextFrame;
           DrawFrame(bmp);
           Inc(frm);
           Delay := Stopwatch.ElapsedMilliseconds - FrameStart;
-          if Delay < FPS_DELAY then
-               Sleep(FPS_DELAY - Delay);
+          if not (HasAudio and OPT_DYNAMIC_DELAYS) then
+               DynDelay := FPS_DELAY;
+          if Delay < DynDelay then
+               Sleep(DynDelay - Delay);
      until bmp = nil;
      Stopwatch.Stop;
      TThread.Queue(nil,
@@ -264,6 +313,8 @@ end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
+     if Playing and HasAudio then
+          StopAudio;
      if not Stopping then
      begin
           Stopping := True;
@@ -276,6 +327,8 @@ begin
      Playing := False;
      Stopping := False;
      SetGamePath(GAME_PATH);
+     if OPT_USE_AUDIO_SKIP and not OPT_DYNAMIC_SKIPS then
+          InitSkipBuffer;
 end;
 
 (*
@@ -308,13 +361,13 @@ begin
      VideoFN := TPath.Combine(GamePath, 'IRON_CD\FILMS\' + Item.TagString + '.ANI');
      if Item.Tag = 1 then
      begin
-          HasSound := True;
+          HasAudio := True;
           SoundFN := Item.TagString + '.RAW';
           EnableLangs;
      end
      else
      begin
-          HasSound := False;
+          HasAudio := False;
           SoundFN := '';
           DisableLangs;
      end;
@@ -352,7 +405,6 @@ begin
      if i >= Length(Data) then
           Exit(nil);
      Clr.A := 255;
-     MediaPlayer1.Media.
      bmp := TBitmap.Create;
      try
           bmp.Width := imgWidth;
@@ -434,6 +486,15 @@ begin
      DrawFrame(bmp);
 end;
 
+procedure TForm1.InitSkipBuffer(Duration: Integer = 0);
+begin
+     if Duration = 0 then
+          Duration := AUDIO_DELAY;
+     SkipCount := (Duration * AUDIO_SAMPLE_RATE) div 1000;
+     SetLength(SkipBuf, SkipCount);
+     FillChar(SkipBuf[0], SkipCount, 127);
+end;
+
 procedure TForm1.LoadMovie;
 var
      VFS: TFileStream;
@@ -471,25 +532,21 @@ begin
      end;
 end;
 
-procedure TForm1.PlayMovieSound;
+procedure TForm1.StartAudio;
 begin
-     Sleep(Snd.Size div 1000);
+     //Sleep(750);
      PlaySound(Snd.Memory, 0, SND_MEMORY or SND_ASYNC or SND_NODEFAULT);
 end;
 
-procedure TForm1.RunPlayThread;
-var
-     playThread: TThread;
+procedure TForm1.StartVideo;
 begin
-     playThread := TThread.CreateAnonymousThread(
-          procedure
-          begin
-               DoPlay;
-          end
-     );
-     playThread.Priority := TThreadPriority.tpHighest;
      Playing := True;
-     playThread.Start;
+     videoThread.Start;
+end;
+
+procedure TForm1.StopAudio;
+begin
+     PlaySound(nil, 0, 0);
 end;
 
 function FileSize(const aFilename: String): Int64;
