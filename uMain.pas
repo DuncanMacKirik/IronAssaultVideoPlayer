@@ -17,8 +17,6 @@ const
 
      PAL_FN = 'IRON_CD\FILMS\FILM.LZ';
 
-     imgWidth = 256;
-     imgHeight = 83;
      FPS_DELAY = 70;
      AUDIO_DELAY = 750;
      AUDIO_SAMPLE_RATE = 11025; // Hz
@@ -26,8 +24,9 @@ const
 
      FMT_MOVIE_INFO = '%d frames, %f seconds'#13'%f frames per second.';
 
-     ERR_FILE_TOO_LARGE = 'File is too large!';
-     ERR_CANNOT_MAP_BITMAP_DATA = 'Cannot map bitmap data!';
+     ERR_FILE_TOO_LARGE = 'File is too large';
+     ERR_UNKNOWN_VIDEO_RES = 'Unknown video resolution';
+     ERR_CANNOT_MAP_BITMAP_DATA = 'Cannot map bitmap data';
 
      OPT_DYNAMIC_DELAYS = True;
      OPT_USE_WIN32_SOUND = True;
@@ -35,6 +34,8 @@ const
      OPT_DYNAMIC_SKIPS = True;
 
 type
+     TColorValueFunc = function (const CN: Byte): TAlphaColor of object;
+
      TForm1 = class(TForm)
           ImageViewer1: TImageViewer;
           btnPlay: TButton;
@@ -51,6 +52,7 @@ type
           Label3: TLabel;
           btnStop: TButton;
           MPlayer: TMediaPlayer;
+          cbRedPalette: TCheckBox;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
@@ -60,6 +62,9 @@ type
      protected
           GamePath, VideoFN, SoundFN: string;
           HasAudio: Boolean;
+          imgWidth: Integer;
+          imgHeight: Integer;
+          DoubleHeight: Boolean;
           Data: array of Byte;
           DataOfs: Integer;
           src, tgt: TRectF;
@@ -69,6 +74,7 @@ type
           SkipCount: Integer;
           DynDelay: Integer;
           videoThread: TThread;
+          ColorValueFunc: TColorValueFunc;
 
           class var Stopping: Boolean;
           class var Playing: Boolean;
@@ -82,6 +88,7 @@ type
           procedure LoadPalette;
           procedure LoadMovie;
 
+          procedure InitColorFunc;
           procedure InitSkipBuffer(Duration: Integer = 0);
 
           function GetLangSoundFN: string;
@@ -103,9 +110,16 @@ type
 
           procedure DisableLangs;
           procedure EnableLangs;
+
+          function GetColorValue(const CN: Byte): TAlphaColor;
+          function GetColorValueRed(const CN: Byte): TAlphaColor;
      end;
 
      EFileTooLarge = class(EStreamError)
+          constructor Create;
+     end;
+
+     EUnknownVideoResolution = class(EStreamError)
           constructor Create;
      end;
 
@@ -212,6 +226,7 @@ begin
      btnStop.Enabled := True;
      LoadPalette;
      LoadMovie;
+     InitColorFunc;
      InitFrame;
      PrepareVideo;
      if HasAudio then
@@ -362,7 +377,10 @@ begin
      if Item.Tag = 1 then
      begin
           HasAudio := True;
-          SoundFN := Item.TagString + '.RAW';
+          if Item.TagString.StartsWith('KIA_') then
+               SoundFN := 'KIA.RAW'
+          else
+               SoundFN := Item.TagString + '.RAW';
           EnableLangs;
      end
      else
@@ -386,25 +404,43 @@ begin
      Result := TPath.Combine(GamePath, 'IRON_CD\' + L + '_FDIGI\' + SoundFN);
 end;
 
-function TForm1.GetNextFrame: TBitmap;
-const
-     lWidth = imgWidth div 4;
+function TForm1.GetColorValue(const CN: Byte): TAlphaColor;
 var
-     x, y, xr, yr, i, p, pb, s: Integer;
+     Clr: TAlphaColorRec;
+begin
+     Clr.A := 255;
+     Clr.R := Palette[CN * 3];
+     Clr.G := Palette[CN * 3 + 1];
+     Clr.B := Palette[CN * 3 + 2];
+     Result := Clr.Color;
+end;
+
+function TForm1.GetColorValueRed(const CN: Byte): TAlphaColor;
+var
+     Clr: TAlphaColorRec;
+begin
+     Clr.A := 255;
+     Clr.B := 0; //Palette[CN * 3];
+     Clr.G := 0; //Palette[CN * 3 + 1];
+     Clr.R := Palette[CN * 3 + 2];
+     Result := Clr.Color;
+end;
+
+function TForm1.GetNextFrame: TBitmap;
+var
+     lWidth, x, y, xr, yr, i, p, pb, s: Integer;
      bmp, bmp2: TBitmap;
      ISL: PByteArray;
      bd: TBitmapData;
      SL: Pointer;
-     SLA: PAlphaColor;
-     Clr: TAlphaColorRec;
      CD: DWord;
      CW: Word;
-     CN, c1, c2: Byte;
+     CN, c1, c2, PN: Byte;
 begin
+     lWidth := imgWidth shr 2;
      i := DataOfs;
      if i >= Length(Data) then
           Exit(nil);
-     Clr.A := 255;
      bmp := TBitmap.Create;
      try
           bmp.Width := imgWidth;
@@ -412,46 +448,22 @@ begin
           if not bmp.Map(TMapAccess.Write, bd) then
                raise EInvalidOpException.Create(ERR_CANNOT_MAP_BITMAP_DATA);
           try
-               for y := 0 to imgHeight - 1 do
+               for PN := 0 to 1 do
                begin
-                    SL := bd.GetScanline(y);
-                    for x := 0 to lWidth - 1 do
+                    for y := 0 to imgHeight - 1 do
                     begin
-                         CN := Data[i];
-                         c1 := CN shr 4;
-                         c2 := CN and 15;
-                         xr := x * 4;
-                         Clr.R := Palette[c2 * 3];
-                         Clr.G := Palette[c2 * 3 + 1];
-                         Clr.B := Palette[c2 * 3 + 2];
-                         bd.SetPixel(xr, y, Clr.Color);
-                         Inc(xr, 2);
-                         Clr.R := Palette[c1 * 3];
-                         Clr.G := Palette[c1 * 3 + 1];
-                         Clr.B := Palette[c1 * 3 + 2];
-                         bd.SetPixel(xr, y, Clr.Color);
-                         Inc(i);
-                    end;
-               end;
-               for y := 0 to imgHeight - 1 do
-               begin
-                    SL := bd.GetScanline(y);
-                    for x := 0 to lWidth - 1 do
-                    begin
-                         CN := Data[i];
-                         c1 := CN shr 4;
-                         c2 := CN and 15;
-                         xr := x * 4 + 1;
-                         Clr.R := Palette[c2 * 3];
-                         Clr.G := Palette[c2 * 3 + 1];
-                         Clr.B := Palette[c2 * 3 + 2];
-                         bd.SetPixel(xr, y, Clr.Color);
-                         Inc(xr, 2);
-                         Clr.R := Palette[c1 * 3];
-                         Clr.G := Palette[c1 * 3 + 1];
-                         Clr.B := Palette[c1 * 3 + 2];
-                         bd.SetPixel(xr, y, Clr.Color);
-                         Inc(i);
+                         SL := bd.GetScanline(y);
+                         for x := 0 to lWidth - 1 do
+                         begin
+                              CN := Data[i];
+                              c1 := CN shr 4;
+                              c2 := CN and 15;
+                              xr := (x shl 2) + PN;
+                              bd.SetPixel(xr, y, ColorValueFunc(c2));
+                              Inc(xr, 2);
+                              bd.SetPixel(xr, y, ColorValueFunc(c1));
+                              Inc(i);
+                         end;
                     end;
                end;
           finally
@@ -461,7 +473,10 @@ begin
      finally
           bmp2 := TBitmap.Create;
           bmp2.Width := imgWidth;
-          bmp2.Height := imgHeight * 2;
+          if DoubleHeight then
+               bmp2.Height := imgHeight * 2
+          else
+               bmp2.Height := imgHeight;
           with bmp2.Canvas do
           begin
                BeginScene;
@@ -473,15 +488,29 @@ begin
      Result := bmp2;
 end;
 
+procedure TForm1.InitColorFunc;
+begin
+     if cbRedPalette.IsChecked then
+          ColorValueFunc := GetColorValueRed
+     else
+          ColorValueFunc := GetColorValue;
+end;
+
 procedure TForm1.InitFrame;
 var
      bmp: TBitmap;
 begin
      src := RectF(0, 0, imgWidth, imgHeight);
-     tgt := RectF(0, 0, imgWidth, imgHeight * 2);
+     if DoubleHeight then
+          tgt := RectF(0, 0, imgWidth, imgHeight * 2)
+     else
+          tgt := RectF(0, 0, imgWidth, imgHeight);
      bmp := TBitmap.Create;
      bmp.Width := imgWidth;
-     bmp.Height := imgHeight;
+     if DoubleHeight then
+          bmp.Height := imgHeight * 2
+     else
+          bmp.Height := imgHeight;
      ImageViewer1.BitmapScale := 2;
      DrawFrame(bmp);
 end;
@@ -503,6 +532,21 @@ begin
      VFS := TFileStream.Create(VideoFN, fmOpenRead);
      try
           VFSz := VFS.Size;
+          if (VFSz mod 10624) = 0 then // cinematics, 256x83
+          begin
+               imgWidth := 256;
+               imgHeight := 83;
+               DoubleHeight := True;
+          end
+          else
+               if (VFSz mod 4608) = 0 then // briefings, 96x96
+               begin
+                    imgWidth := 96;
+                    imgHeight := 96;
+                    DoubleHeight := False;
+               end
+               else
+                    raise(EUnknownVideoResolution.Create);
           if VFSz >= MAX_FILE_SIZE then
                raise EFileTooLarge.Create;
           SetLength(Data, VFSz);
@@ -578,11 +622,13 @@ begin
      end;
      ShowStatus('OK, game files found.');
      for FN in TDirectory.GetFiles(FilmsDir, '*.ANI') do
-     if (FileSize(FN) mod 10624) = 0 then     
      begin
           MN := TPath.GetFileNameWithoutExtension(FN);
           SN := TPath.Combine(CDDir, 'E_FDIGI');
-          SN := TPath.Combine(SN, MN + '.RAW');
+          if MN.StartsWith('KIA_') then
+               SN := TPath.Combine(SN, 'KIA.RAW')
+          else
+               SN := TPath.Combine(SN, MN + '.RAW');
           if TFile.Exists(SN) then
           begin
                LN := MN + ' *';
@@ -645,6 +691,13 @@ end;
 constructor EFileTooLarge.Create;
 begin
      inherited Create(ERR_FILE_TOO_LARGE);
+end;
+
+{ EUnknownVideoResolution }
+
+constructor EUnknownVideoResolution.Create;
+begin
+     inherited Create(ERR_UNKNOWN_VIDEO_RES);
 end;
 
 end.
