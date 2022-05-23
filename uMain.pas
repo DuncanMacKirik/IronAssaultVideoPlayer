@@ -9,8 +9,10 @@ uses
      FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media,
   FMX.Objects;
 
+{$DEFINE USE_WIN32_SOUND}
+
 const
-     MAX_FILE_SIZE = 128 * 1024 * 1024;
+     MAX_FILE_SIZE = 128 * 1024 * 1024; // 128 MB
 
      IMG_OFS = $00000000;
 
@@ -30,7 +32,6 @@ const
      ERR_CANNOT_MAP_BITMAP_DATA = 'Cannot map bitmap data';
 
      OPT_DYNAMIC_DELAYS = True;
-     OPT_USE_WIN32_SOUND = True;
      OPT_USE_AUDIO_SKIP = True;
      OPT_DYNAMIC_SKIPS = True;
 
@@ -52,15 +53,15 @@ type
           lblStatus: TLabel;
           Label3: TLabel;
           btnStop: TButton;
-          MPlayer: TMediaPlayer;
           cbRedPalette: TCheckBox;
-    Image1: TImage;
+          imgSelDir: TImage;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
           procedure FormCreate(Sender: TObject);
           procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
           procedure btnStopClick(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
      protected
           GamePath, VideoFN, SoundFN: string;
           HasAudio: Boolean;
@@ -77,6 +78,10 @@ type
           DynDelay: Integer;
           videoThread: TThread;
           ColorValueFunc: TColorValueFunc;
+{$IFNDEF USE_WIN32_SOUND}
+          AudioFN: string;
+          MPlayer: TMediaPlayer;
+{$ENDIF}
 
           class var Stopping: Boolean;
           class var Playing: Boolean;
@@ -92,6 +97,9 @@ type
 
           procedure InitColorFunc;
           procedure InitSkipBuffer(Duration: Integer = 0);
+{$IFNDEF USE_WIN32_SOUND}
+          procedure InitMediaPlayer;
+{$ENDIF}
 
           function GetLangSoundFN: string;
 
@@ -148,6 +156,9 @@ const
      WaveId: AnsiString = 'WAVE';
      FmtId: AnsiString = 'fmt ';
      DataId: AnsiString = 'data';
+{$IFNDEF USE_WIN32_SOUND}
+     TEMP_FILE_NAME = 'IronAssaultVideoPlayer.tmp';
+{$ENDIF}
 var
      WaveFormatEx: TWaveFormatEx;
      MS: TMemoryStream;
@@ -205,6 +216,13 @@ begin
           FreeAndNil(FS);
      end;
      Snd := MS;
+{$IFNDEF USE_WIN32_SOUND}
+     AudioFN := TPath.Combine(TPath.GetTempPath, TEMP_FILE_NAME);
+     Snd.SaveToFile(AudioFN);
+     FreeAndNil(Snd);
+     //InitMediaPlayer;
+     MPlayer.FileName := AudioFN;
+{$ENDIF}
 end;
 
 procedure TForm1.PrepareVideo;
@@ -300,6 +318,10 @@ begin
           begin
                Playing := False;
                ShowInfo(frm, Stopwatch.ElapsedMilliseconds);
+{$IFNDEF USE_WIN32_SOUND}
+               if HasAudio then
+                    StopAudio;
+{$ENDIF}
                btnPlay.Enabled := GameFilesList.Selected <> nil;
                btnStop.Enabled := False;
           end
@@ -346,6 +368,18 @@ begin
      SetGamePath(GAME_PATH);
      if OPT_USE_AUDIO_SKIP and not OPT_DYNAMIC_SKIPS then
           InitSkipBuffer;
+{$IFNDEF USE_WIN32_SOUND}
+     InitMediaPlayer;
+{$ENDIF}
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+     if Assigned(Snd) then
+          FreeAndNil(Snd);
+{$IFNDEF USE_WIN32_SOUND}
+     FreeAndNil(MPlayer);
+{$ENDIF}
 end;
 
 (*
@@ -457,6 +491,8 @@ begin
                          SL := bd.GetScanline(y);
                          for x := 0 to lWidth - 1 do
                          begin
+                              if i >= Length(Data) then
+                                   Break;
                               CN := Data[i];
                               c1 := CN shr 4;
                               c2 := CN and 15;
@@ -516,6 +552,13 @@ begin
      ImageViewer1.BitmapScale := 2;
      DrawFrame(bmp);
 end;
+
+{$IFNDEF USE_WIN32_SOUND}
+procedure TForm1.InitMediaPlayer;
+begin
+     MPlayer := TMediaPlayer.Create(nil);
+end;
+{$ENDIF}
 
 procedure TForm1.InitSkipBuffer(Duration: Integer = 0);
 begin
@@ -581,7 +624,12 @@ end;
 procedure TForm1.StartAudio;
 begin
      //Sleep(750);
+{$IFDEF USE_WIN32_SOUND}
      PlaySound(Snd.Memory, 0, SND_MEMORY or SND_ASYNC or SND_NODEFAULT);
+     FreeAndNil(Snd);
+{$ELSE}
+     MPlayer.Play;
+{$ENDIF}
 end;
 
 procedure TForm1.StartVideo;
@@ -592,7 +640,26 @@ end;
 
 procedure TForm1.StopAudio;
 begin
+{$IFDEF USE_WIN32_SOUND}
      PlaySound(nil, 0, 0);
+{$ELSE}
+     MPlayer.Clear;
+//     FreeAndNil(MPlayer);
+{
+     TThread.CreateAnonymousThread(
+          procedure
+          begin
+               Sleep(500);
+               TThread.Synchronize(nil,
+                    procedure
+                    begin
+                          TFile.Delete(AudioFN);
+                    end
+               );
+          end
+     );
+}
+{$ENDIF}
 end;
 
 function FileSize(const aFilename: String): Int64;

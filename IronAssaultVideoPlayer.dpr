@@ -1,9 +1,9 @@
 program IronAssaultVideoPlayer;
 
 uses
-  System.StartUpCopy,
-  FMX.Forms,
-  uMain in 'uMain.pas' {Form1};
+     System.StartUpCopy,
+     FMX.Forms,
+     uMain in 'uMain.pas' {Form1};
 
 {$R *.res}
 
