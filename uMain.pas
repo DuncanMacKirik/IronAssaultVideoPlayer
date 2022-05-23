@@ -19,6 +19,11 @@ const
      GAME_PATH = 'C:\Games\Iron Assault\IRON';
 
      PAL_FN = 'IRON_CD\FILMS\FILM.LZ';
+     PAL_FN2 = 'IRON_CD\E_MAIN\BACKTXT.LZ';
+     PAL_SIZE = 48; // 16 * 3
+     PAL_SIZE_3X = 3 * PAL_SIZE;
+     PAL_OFS = 4;
+     PAL_OFS2 = 196;
 
      FPS_DELAY = 70;
      AUDIO_DELAY = 750;
@@ -36,7 +41,7 @@ const
      OPT_DYNAMIC_SKIPS = True;
 
 type
-     TColorValueFunc = function (const CN: Byte): TAlphaColor of object;
+     TColorValueFunc = function (CN: Integer): TAlphaColor of object;
 
      TForm1 = class(TForm)
           ImageViewer1: TImageViewer;
@@ -49,19 +54,23 @@ type
           rbEnglish: TRadioButton;
           rbFrench: TRadioButton;
           rbGerman: TRadioButton;
-          Label2: TLabel;
           lblStatus: TLabel;
           Label3: TLabel;
           btnStop: TButton;
-          cbRedPalette: TCheckBox;
           imgSelDir: TImage;
+          rbPaletteBlue: TRadioButton;
+          rbPaletteRed: TRadioButton;
+          rbPaletteGolden: TRadioButton;
+          rbPaletteGreen: TRadioButton;
+          gbAudioLang: TGroupBox;
+          gbPalette: TGroupBox;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
           procedure FormCreate(Sender: TObject);
           procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
           procedure btnStopClick(Sender: TObject);
-    procedure FormDestroy(Sender: TObject);
+          procedure FormDestroy(Sender: TObject);
      protected
           GamePath, VideoFN, SoundFN: string;
           HasAudio: Boolean;
@@ -92,7 +101,7 @@ type
           procedure SetGamePath(const Dir: string);
           procedure ScanForGameFiles;
 
-          procedure LoadPalette;
+          procedure LoadPalettes;
           procedure LoadMovie;
 
           procedure InitColorFunc;
@@ -121,8 +130,11 @@ type
           procedure DisableLangs;
           procedure EnableLangs;
 
-          function GetColorValue(const CN: Byte): TAlphaColor;
-          function GetColorValueRed(const CN: Byte): TAlphaColor;
+          function DoGetColorValue(CN: Integer; ClrOfs: Integer): TAlphaColor;
+          function GetColorValue(CN: Integer): TAlphaColor;
+          function GetColorValueRed(CN: Integer): TAlphaColor;
+          function GetColorValueGolden(CN: Integer): TAlphaColor;
+          function GetColorValueGreen(CN: Integer): TAlphaColor;
      end;
 
      EFileTooLarge = class(EStreamError)
@@ -244,7 +256,7 @@ procedure TForm1.btnPlayClick(Sender: TObject);
 begin
      btnPlay.Enabled := False;
      btnStop.Enabled := True;
-     LoadPalette;
+     LoadPalettes;
      LoadMovie;
      InitColorFunc;
      InitFrame;
@@ -440,10 +452,11 @@ begin
      Result := TPath.Combine(GamePath, 'IRON_CD\' + L + '_FDIGI\' + SoundFN);
 end;
 
-function TForm1.GetColorValue(const CN: Byte): TAlphaColor;
+function TForm1.DoGetColorValue(CN: Integer; ClrOfs: Integer): TAlphaColor;
 var
      Clr: TAlphaColorRec;
 begin
+     Inc(CN, ClrOfs);
      Clr.A := 255;
      Clr.R := Palette[CN * 3];
      Clr.G := Palette[CN * 3 + 1];
@@ -451,15 +464,24 @@ begin
      Result := Clr.Color;
 end;
 
-function TForm1.GetColorValueRed(const CN: Byte): TAlphaColor;
-var
-     Clr: TAlphaColorRec;
+function TForm1.GetColorValue(CN: Integer): TAlphaColor;
 begin
-     Clr.A := 255;
-     Clr.B := 0; //Palette[CN * 3];
-     Clr.G := 0; //Palette[CN * 3 + 1];
-     Clr.R := Palette[CN * 3 + 2];
-     Result := Clr.Color;
+     Result := DoGetColorValue(CN, 0);
+end;
+
+function TForm1.GetColorValueRed(CN: Integer): TAlphaColor;
+begin
+     Result := DoGetColorValue(CN, 16);
+end;
+
+function TForm1.GetColorValueGolden(CN: Integer): TAlphaColor;
+begin
+     Result := DoGetColorValue(CN, 32);
+end;
+
+function TForm1.GetColorValueGreen(CN: Integer): TAlphaColor;
+begin
+     Result := DoGetColorValue(CN, 48);
 end;
 
 function TForm1.GetNextFrame: TBitmap;
@@ -528,8 +550,14 @@ end;
 
 procedure TForm1.InitColorFunc;
 begin
-     if cbRedPalette.IsChecked then
+     if rbPaletteRed.IsChecked then
           ColorValueFunc := GetColorValueRed
+     else
+     if rbPaletteGolden.IsChecked then
+          ColorValueFunc := GetColorValueGolden
+     else
+     if rbPaletteGreen.IsChecked then
+          ColorValueFunc := GetColorValueGreen
      else
           ColorValueFunc := GetColorValue;
 end;
@@ -602,23 +630,31 @@ begin
      end;
 end;
 
-procedure TForm1.LoadPalette;
-var
-     PFS: TFileStream;
-     i: Integer;
-begin
-     PFS := TFileStream.Create(
-          TPath.Combine(GamePath, PAL_FN),
-          fmOpenRead
-     );
-     try
-          PFS.Position := 4;
-          PFS.Read(Palette[0], SizeOf(Palette));
-          for i := 0 to SizeOf(Palette)-1 do
-               Palette[i] := (Palette[i] shl 2) or 3;
-     finally
-          FreeAndNil(PFS);
+procedure TForm1.LoadPalettes;
+
+     procedure DoLoadPalette(const PFN: string; const PalOfs, PalSize, PalIndex: Integer);
+     var
+          PFS: TFileStream;
+     begin
+          PFS := TFileStream.Create(
+               TPath.Combine(GamePath, PFN),
+               fmOpenRead
+          );
+          try
+               PFS.Position := PalOfs;
+               PFS.Read(Palette[PalIndex], PalSize);
+          finally
+               FreeAndNil(PFS);
+          end;
      end;
+
+var
+     PS, i: Integer;
+begin
+     DoLoadPalette(PAL_FN, PAL_OFS, PAL_SIZE_3X, 0);
+     DoLoadPalette(PAL_FN2, PAL_OFS2, PAL_SIZE, PAL_SIZE_3X);
+     for i := 0 to SizeOf(Palette)-1 do
+          Palette[i] := (Palette[i] shl 2) or 3;
 end;
 
 procedure TForm1.StartAudio;
@@ -644,21 +680,6 @@ begin
      PlaySound(nil, 0, 0);
 {$ELSE}
      MPlayer.Clear;
-//     FreeAndNil(MPlayer);
-{
-     TThread.CreateAnonymousThread(
-          procedure
-          begin
-               Sleep(500);
-               TThread.Synchronize(nil,
-                    procedure
-                    begin
-                          TFile.Delete(AudioFN);
-                    end
-               );
-          end
-     );
-}
 {$ENDIF}
 end;
 
