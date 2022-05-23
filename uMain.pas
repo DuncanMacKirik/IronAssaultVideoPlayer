@@ -64,6 +64,8 @@ type
           rbPaletteGreen: TRadioButton;
           gbAudioLang: TGroupBox;
           gbPalette: TGroupBox;
+    rbDisableAudio: TRadioButton;
+    Label2: TLabel;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
@@ -254,8 +256,9 @@ end;
 
 procedure TForm1.btnPlayClick(Sender: TObject);
 begin
-     btnPlay.Enabled := False;
-     btnStop.Enabled := True;
+     if rbDisableAudio.IsChecked then
+          HasAudio := False;
+
      LoadPalettes;
      LoadMovie;
      InitColorFunc;
@@ -264,10 +267,21 @@ begin
      if HasAudio then
           PrepareAudio;
 
-     Stopping := False;
-     StartVideo;
-     if HasAudio then
-          StartAudio;
+     try
+          btnPlay.Enabled := False;
+          btnStop.Enabled := True;
+          Stopping := False;
+          StartVideo;
+          if HasAudio then
+               StartAudio;
+     except
+          on E: Exception do
+          begin
+               btnPlay.Enabled := False;
+               btnStop.Enabled := True;
+               raise E;
+          end;
+     end;
 end;
 
 procedure TForm1.btnSelDirClick(Sender: TObject);
@@ -705,7 +719,9 @@ begin
      GameFilesList.Clear;
      CDDir := TPath.Combine(GamePath, 'IRON_CD');
      FilmsDir := TPath.Combine(CDDir, 'FILMS');
-     if not (TDirectory.Exists(CDDir) and TDirectory.Exists(FilmsDir)) then
+     if not (TDirectory.Exists(CDDir) and TDirectory.Exists(FilmsDir) and
+          TFile.Exists(TPath.Combine(GamePath, PAL_FN)) and
+          TFile.Exists(TPath.Combine(GamePath, PAL_FN2))) then
      begin
           ShowError('Game files not found!');
           Exit;
