@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 0
   Caption = 'Iron Assault Video Player'
   ClientHeight = 604
-  ClientWidth = 897
+  ClientWidth = 889
   Position = ScreenCenter
   FormFactor.Width = 320
   FormFactor.Height = 480
@@ -16,19 +16,19 @@ object Form1: TForm1
     Anchors = [akLeft, akRight, akBottom]
     Position.X = 32.000000000000000000
     Position.Y = 192.000000000000000000
-    Size.Width = 600.000000000000000000
+    Size.Width = 592.000000000000000000
     Size.Height = 396.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
     BitmapScale = 0.959999978542327900
-    Viewport.Width = 596.000000000000000000
+    Viewport.Width = 588.000000000000000000
     Viewport.Height = 392.000000000000000000
   end
   object btnPlay: TButton
     Anchors = [akTop, akRight]
     Enabled = False
     StyledSettings = [Family, Style, FontColor]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 347.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 41.000000000000000000
@@ -43,7 +43,7 @@ object Form1: TForm1
     DataDetectorTypes = []
     ReadOnly = True
     Anchors = [akTop, akRight]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 483.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 105.000000000000000000
@@ -72,7 +72,7 @@ object Form1: TForm1
     TextSettings.Font.Size = 16.000000000000000000
     Position.X = 184.000000000000000000
     Position.Y = 16.000000000000000000
-    Size.Width = 409.000000000000000000
+    Size.Width = 401.000000000000000000
     Size.Height = 25.000000000000000000
     Size.PlatformDefault = False
     StyledSettings = [Family, Style, FontColor]
@@ -84,7 +84,7 @@ object Form1: TForm1
     Padding.Top = 4.000000000000000000
     Padding.Right = 4.000000000000000000
     Padding.Bottom = 4.000000000000000000
-    Position.X = 600.000000000000000000
+    Position.X = 592.000000000000000000
     Position.Y = 16.000000000000000000
     Size.Width = 33.000000000000000000
     Size.Height = 25.000000000000000000
@@ -369,7 +369,7 @@ object Form1: TForm1
     Anchors = [akLeft, akTop, akRight, akBottom]
     Position.X = 32.000000000000000000
     Position.Y = 64.000000000000000000
-    Size.Width = 601.000000000000000000
+    Size.Width = 593.000000000000000000
     Size.Height = 89.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 7
@@ -379,13 +379,13 @@ object Form1: TForm1
     DefaultItemStyles.GroupHeaderStyle = ''
     DefaultItemStyles.GroupFooterStyle = ''
     OnItemClick = GameFilesListItemClick
-    Viewport.Width = 597.000000000000000000
+    Viewport.Width = 589.000000000000000000
     Viewport.Height = 85.000000000000000000
   end
   object lblStatus: TLabel
     Anchors = [akTop, akRight]
     StyledSettings = [Family]
-    Position.X = 648.000000000000000000
+    Position.X = 640.000000000000000000
     Position.Y = 16.000000000000000000
     Size.Width = 241.000000000000000000
     Size.Height = 25.000000000000000000
@@ -402,7 +402,7 @@ object Form1: TForm1
     StyledSettings = [Family, Style, FontColor]
     Position.X = 32.000000000000000000
     Position.Y = 152.000000000000000000
-    Size.Width = 601.000000000000000000
+    Size.Width = 593.000000000000000000
     Size.Height = 25.000000000000000000
     Size.PlatformDefault = False
     TextSettings.Font.Size = 14.000000000000000000
@@ -414,7 +414,7 @@ object Form1: TForm1
     Anchors = [akTop, akRight]
     Enabled = False
     StyledSettings = [Family, Style, FontColor]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 395.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 41.000000000000000000
@@ -426,7 +426,7 @@ object Form1: TForm1
   end
   object gbAudioLang: TGroupBox
     Anchors = [akTop, akRight]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 59.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 121.000000000000000000
@@ -476,7 +476,7 @@ object Form1: TForm1
   end
   object gbPalette: TGroupBox
     Anchors = [akTop, akRight]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 195.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 129.000000000000000000
@@ -533,7 +533,7 @@ object Form1: TForm1
   object Label2: TLabel
     Anchors = [akTop, akRight]
     StyledSettings = [Family, Style, FontColor]
-    Position.X = 672.000000000000000000
+    Position.X = 664.000000000000000000
     Position.Y = 459.000000000000000000
     Size.Width = 185.000000000000000000
     Size.Height = 25.000000000000000000
