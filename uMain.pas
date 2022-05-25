@@ -9,7 +9,7 @@ uses
      FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media,
      FMX.Objects;
 
-{$DEFINE USE_WIN32_SOUND}
+{.$DEFINE USE_WIN32_SOUND}
 
 const
      MAX_FILE_SIZE = 128 * 1024 * 1024; // 128 MB
@@ -64,8 +64,8 @@ type
           rbPaletteTeal: TRadioButton;
           gbAudioLang: TGroupBox;
           gbPalette: TGroupBox;
-    rbDisableAudio: TRadioButton;
-    Label2: TLabel;
+          rbDisableAudio: TRadioButton;
+          Label2: TLabel;
           procedure btnPlayClick(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
           procedure btnSelDirClick(Sender: TObject);
@@ -155,7 +155,10 @@ implementation
 
 uses
      System.Threading, System.Diagnostics, System.IOUtils, System.TimeSpan,
-     FMX.Dialogs.Win, Winapi.Windows, Winapi.MMSystem;
+     FMX.Dialogs.Win
+{$IFDEF USE_WIN32_SOUND}
+     , Winapi.Windows, Winapi.MMSystem
+{$ENDIF};
 
 type
      TBitmap = FMX.Graphics.TBitmap;
@@ -172,6 +175,20 @@ const
      DataId: AnsiString = 'data';
 {$IFNDEF USE_WIN32_SOUND}
      TEMP_FILE_NAME = 'IronAssaultVideoPlayer.tmp';
+{from Winapi.MMSystem.pas}
+     WAVE_FORMAT_PCM = 1;
+
+type
+     PWaveFormatEx = ^TWaveFormatEx;
+     tWAVEFORMATEX = record
+          wFormatTag: Word;         { format type }
+          nChannels: Word;          { number of channels (i.e. mono, stereo, etc.) }
+          nSamplesPerSec: DWORD;  { sample rate }
+          nAvgBytesPerSec: DWORD; { for buffer estimation }
+          nBlockAlign: Word;      { block size of data }
+          wBitsPerSample: Word;   { number of bits per sample of mono data }
+          cbSize: Word;           { the count in bytes of the size of }
+     end;
 {$ENDIF}
 var
      WaveFormatEx: TWaveFormatEx;
@@ -695,18 +712,6 @@ begin
 {$ELSE}
      MPlayer.Clear;
 {$ENDIF}
-end;
-
-function FileSize(const aFilename: String): Int64;
-var
-     info: TWin32FileAttributeData;
-begin
-     result := -1;
-
-     if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
-          Exit;
-
-     result := Int64(info.nFileSizeLow) or Int64(info.nFileSizeHigh shl 32);
 end;
 
 procedure TForm1.ScanForGameFiles;
