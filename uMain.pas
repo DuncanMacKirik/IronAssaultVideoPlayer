@@ -7,7 +7,7 @@ uses
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
      FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.ExtCtrls, FMX.Edit,
      FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media,
-  FMX.Objects;
+     FMX.Objects;
 
 {$DEFINE USE_WIN32_SOUND}
 
@@ -61,7 +61,7 @@ type
           rbPaletteBlue: TRadioButton;
           rbPaletteRed: TRadioButton;
           rbPaletteGolden: TRadioButton;
-          rbPaletteGreen: TRadioButton;
+          rbPaletteTeal: TRadioButton;
           gbAudioLang: TGroupBox;
           gbPalette: TGroupBox;
     rbDisableAudio: TRadioButton;
@@ -136,7 +136,7 @@ type
           function GetColorValue(CN: Integer): TAlphaColor;
           function GetColorValueRed(CN: Integer): TAlphaColor;
           function GetColorValueGolden(CN: Integer): TAlphaColor;
-          function GetColorValueGreen(CN: Integer): TAlphaColor;
+          function GetColorValueTeal(CN: Integer): TAlphaColor;
      end;
 
      EFileTooLarge = class(EStreamError)
@@ -493,7 +493,7 @@ begin
      Result := DoGetColorValue(CN, 32);
 end;
 
-function TForm1.GetColorValueGreen(CN: Integer): TAlphaColor;
+function TForm1.GetColorValueTeal(CN: Integer): TAlphaColor;
 begin
      Result := DoGetColorValue(CN, 48);
 end;
@@ -570,8 +570,8 @@ begin
      if rbPaletteGolden.IsChecked then
           ColorValueFunc := GetColorValueGolden
      else
-     if rbPaletteGreen.IsChecked then
-          ColorValueFunc := GetColorValueGreen
+     if rbPaletteTeal.IsChecked then
+          ColorValueFunc := GetColorValueTeal
      else
           ColorValueFunc := GetColorValue;
 end;
