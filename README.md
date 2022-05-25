@@ -24,13 +24,18 @@ Nothing tricky, compared to other titles with their own video codecs and so on. 
 Raw planar video (for displaying in "mode X" 320x200), 16 colors, indexed palette, ~ 14 fps.  
 Frame size: 256 x 83 (cutscenes), 96 x 96 (videos in briefings)  
 Frame display size: ~ 256 x 166 (cutscenes), 96 x 96 (videos in briefings)  
+  
 Example for cutscene videos:  
 Byte order (total 10624 bytes in 1 frame):  
+```  
    [A1A2] [A3A4] ...  } - 5312 bytes, Plane A  
    [B1B2] [B3B4] ...  } - 5312 bytes, Plane B  
+```   
 ([xxxx] = 1 byte, Ax / Bx = 1 nibble (4 bits), each nibble is a 0..15 color index in one of 16-color palettes.)  
 Pixel order in usual (linear) mode:  
+```  
 [A2] [B2] [A1] [B1] [A4] [B4] [A3] [B3] ...  
+```  
 3 of the palettes ("standard"/blue, "emergency"/red and "evening"/golden) are stored in FILMS/FILM.LZ, and another one ("report"/teal), used in briefing videos, is found in multiple files, including E_MAIN/BACKTXT.LZ. Some videos can be seen in the game multiple times with different palettes.  
   
 ### Audio info  
