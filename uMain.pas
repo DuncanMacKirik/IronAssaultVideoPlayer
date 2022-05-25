@@ -154,8 +154,7 @@ var
 implementation
 
 uses
-     System.Threading, System.Diagnostics, System.IOUtils, System.TimeSpan,
-     FMX.Dialogs.Win
+     System.Threading, System.Diagnostics, System.IOUtils, System.TimeSpan
 {$IFDEF USE_WIN32_SOUND}
      , Winapi.Windows, Winapi.MMSystem
 {$ENDIF};
@@ -164,6 +163,17 @@ type
      TBitmap = FMX.Graphics.TBitmap;
 
 {$R *.fmx}
+
+// TPath.Combine with cross-platform path delimiters support
+function CombinePath(const Path1, Path2: string): string; inline;
+begin
+     Result := TPath.Combine(Path1, Path2);
+{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF WINDOWS}
+     Result := Result.Replace('\', '/');
+{$ENDIF}
+{$ENDIF}
+end;
 
 procedure TForm1.PrepareAudio;
 const
@@ -248,7 +258,7 @@ begin
      end;
      Snd := MS;
 {$IFNDEF USE_WIN32_SOUND}
-     AudioFN := TPath.Combine(TPath.GetTempPath, TEMP_FILE_NAME);
+     AudioFN := CombinePath(TPath.GetTempPath, TEMP_FILE_NAME);
      Snd.SaveToFile(AudioFN);
      FreeAndNil(Snd);
      //InitMediaPlayer;
@@ -266,7 +276,9 @@ begin
      );
      with videoThread do
      begin
+{$IFDEF USE_WIN32_SOUND}
           Priority := TThreadPriority.tpHighest;
+{$ENDIF}
           FreeOnTerminate := True;
      end;
 end;
@@ -406,6 +418,10 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
+{$IF CompilerVersion >= 35.0}
+     Constraints.MinWidth := 894;
+     Constraints.MinHeight := 604;
+{$IFEND}
      Playing := False;
      Stopping := False;
      SetGamePath(GAME_PATH);
@@ -452,7 +468,7 @@ procedure TForm1.GameFilesListItemClick(const Sender: TCustomListBox; const Item
 begin
      if Item = nil then
           Exit;
-     VideoFN := TPath.Combine(GamePath, 'IRON_CD\FILMS\' + Item.TagString + '.ANI');
+     VideoFN := CombinePath(GamePath, 'IRON_CD\FILMS\' + Item.TagString + '.ANI');
      if Item.Tag = 1 then
      begin
           HasAudio := True;
@@ -480,7 +496,7 @@ begin
           L := 'F';
      if rbGerman.IsChecked then
           L := 'G';
-     Result := TPath.Combine(GamePath, 'IRON_CD\' + L + '_FDIGI\' + SoundFN);
+     Result := CombinePath(GamePath, 'IRON_CD\' + L + '_FDIGI\' + SoundFN);
 end;
 
 function TForm1.DoGetColorValue(CN: Integer; ClrOfs: Integer): TAlphaColor;
@@ -668,7 +684,7 @@ procedure TForm1.LoadPalettes;
           PFS: TFileStream;
      begin
           PFS := TFileStream.Create(
-               TPath.Combine(GamePath, PFN),
+               CombinePath(GamePath, PFN),
                fmOpenRead
           );
           try
@@ -722,11 +738,11 @@ var
 begin
      lblStatus.Visible := False;
      GameFilesList.Clear;
-     CDDir := TPath.Combine(GamePath, 'IRON_CD');
-     FilmsDir := TPath.Combine(CDDir, 'FILMS');
+     CDDir := CombinePath(GamePath, 'IRON_CD');
+     FilmsDir := CombinePath(CDDir, 'FILMS');
      if not (TDirectory.Exists(CDDir) and TDirectory.Exists(FilmsDir) and
-          TFile.Exists(TPath.Combine(GamePath, PAL_FN)) and
-          TFile.Exists(TPath.Combine(GamePath, PAL_FN2))) then
+          TFile.Exists(CombinePath(GamePath, PAL_FN)) and
+          TFile.Exists(CombinePath(GamePath, PAL_FN2))) then
      begin
           ShowError('Game files not found!');
           Exit;
@@ -735,11 +751,11 @@ begin
      for FN in TDirectory.GetFiles(FilmsDir, '*.ANI') do
      begin
           MN := TPath.GetFileNameWithoutExtension(FN);
-          SN := TPath.Combine(CDDir, 'E_FDIGI');
+          SN := CombinePath(CDDir, 'E_FDIGI');
           if MN.StartsWith('KIA_') then
-               SN := TPath.Combine(SN, 'KIA.RAW')
+               SN := CombinePath(SN, 'KIA.RAW')
           else
-               SN := TPath.Combine(SN, MN + '.RAW');
+               SN := CombinePath(SN, MN + '.RAW');
           if TFile.Exists(SN) then
           begin
                LN := MN + ' *';
