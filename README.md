@@ -34,6 +34,6 @@ Pixel order in usual (linear) mode:
 3 of the palettes ("standard"/blue, "emergency"/red and "evening"/golden) are stored in FILMS/FILM.LZ, and another one ("report"/teal), used in briefing videos, is found in multiple files, including E_MAIN/BACKTXT.LZ. Some videos can be seen in the game multiple times with different palettes.  
   
 ### Audio info  
-headerless unsigned 8-bit, 11025 Hz, mono, stored separately for each of 3 languages.  
+Headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
 
 ## TODO  
