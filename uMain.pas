@@ -9,7 +9,7 @@ uses
      FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Media,
      FMX.Objects;
 
-{.$DEFINE USE_WIN32_SOUND}
+{.$DEFINE USE_WIN32_API}
 
 const
      MAX_FILE_SIZE = 128 * 1024 * 1024; // 128 MB
@@ -89,7 +89,7 @@ type
           DynDelay: Integer;
           videoThread: TThread;
           ColorValueFunc: TColorValueFunc;
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
           AudioFN: string;
           MPlayer: TMediaPlayer;
 {$ENDIF}
@@ -108,7 +108,7 @@ type
 
           procedure InitColorFunc;
           procedure InitSkipBuffer(Duration: Integer = 0);
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
           procedure InitMediaPlayer;
 {$ENDIF}
 
@@ -155,7 +155,7 @@ implementation
 
 uses
      System.Threading, System.Diagnostics, System.IOUtils, System.TimeSpan
-{$IFDEF USE_WIN32_SOUND}
+{$IFDEF USE_WIN32_API}
      , Winapi.Windows, Winapi.MMSystem
 {$ENDIF};
 
@@ -168,7 +168,7 @@ type
 function CombinePath(const Path1, Path2: string): string; inline;
 begin
      Result := TPath.Combine(Path1, Path2);
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
 {$IFNDEF WINDOWS}
      Result := Result.Replace('\', '/');
 {$ENDIF}
@@ -183,7 +183,7 @@ const
      WaveId: AnsiString = 'WAVE';
      FmtId: AnsiString = 'fmt ';
      DataId: AnsiString = 'data';
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
      TEMP_FILE_NAME = 'IronAssaultVideoPlayer.tmp';
 {from Winapi.MMSystem.pas}
      WAVE_FORMAT_PCM = 1;
@@ -257,7 +257,7 @@ begin
           FreeAndNil(FS);
      end;
      Snd := MS;
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
      AudioFN := CombinePath(TPath.GetTempPath, TEMP_FILE_NAME);
      Snd.SaveToFile(AudioFN);
      FreeAndNil(Snd);
@@ -276,7 +276,7 @@ begin
      );
      with videoThread do
      begin
-{$IFDEF USE_WIN32_SOUND}
+{$IFDEF USE_WIN32_API}
           Priority := TThreadPriority.tpHighest;
 {$ENDIF}
           FreeOnTerminate := True;
@@ -373,7 +373,7 @@ begin
           begin
                Playing := False;
                ShowInfo(frm, Stopwatch.ElapsedMilliseconds);
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
                if HasAudio then
                     StopAudio;
 {$ENDIF}
@@ -427,7 +427,7 @@ begin
      SetGamePath(GAME_PATH);
      if OPT_USE_AUDIO_SKIP and not OPT_DYNAMIC_SKIPS then
           InitSkipBuffer;
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
      InitMediaPlayer;
 {$ENDIF}
 end;
@@ -436,7 +436,7 @@ procedure TForm1.FormDestroy(Sender: TObject);
 begin
      if Assigned(Snd) then
           FreeAndNil(Snd);
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
      FreeAndNil(MPlayer);
 {$ENDIF}
 end;
@@ -628,7 +628,7 @@ begin
      DrawFrame(bmp);
 end;
 
-{$IFNDEF USE_WIN32_SOUND}
+{$IFNDEF USE_WIN32_API}
 procedure TForm1.InitMediaPlayer;
 begin
      MPlayer := TMediaPlayer.Create(nil);
@@ -707,7 +707,7 @@ end;
 procedure TForm1.StartAudio;
 begin
      //Sleep(750);
-{$IFDEF USE_WIN32_SOUND}
+{$IFDEF USE_WIN32_API}
      PlaySound(Snd.Memory, 0, SND_MEMORY or SND_ASYNC or SND_NODEFAULT);
      FreeAndNil(Snd);
 {$ELSE}
@@ -723,7 +723,7 @@ end;
 
 procedure TForm1.StopAudio;
 begin
-{$IFDEF USE_WIN32_SOUND}
+{$IFDEF USE_WIN32_API}
      PlaySound(nil, 0, 0);
 {$ELSE}
      MPlayer.Clear;
