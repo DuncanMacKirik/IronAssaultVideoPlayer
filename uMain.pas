@@ -198,7 +198,7 @@ begin
      if not PlayAudio then
           Result := Disabled
      else
-          Result := TIAAudioType(GetCheckedRadioButton([rbDisableAudio, rbEnglish, rbFrench, rbGerman]));
+          Result := TIAAudioType(GetCheckedRadioButton([rbDisableAudio, rbEnglish, rbFrench, rbGerman]).Tag);
 end;
 
 function TForm1.GetSelectedPalette: TIAPaletteType;
