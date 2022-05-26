@@ -1,0 +1,1 @@
+﻿{.$DEFINE USE_WIN32_API}

@@ -7,7 +7,7 @@ interface
 uses
      System.Classes, System.Types, System.UITypes,
      FMX.Graphics,
-     IAAudioHandler, IAPalettes, IAUtils;
+     IAAudioHandler, IAPaletteHandler, IAUtils;
 
 const
      IMG_OFS = 0;

@@ -1,4 +1,4 @@
-﻿unit IAPalettes;
+﻿unit IAPaletteHandler;
 
 interface
 
