@@ -42,3 +42,15 @@ Pixel order in usual (linear) mode:
 Headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
 
 ## TODO  
+- [x] upgrade code quality level from "quick-and-dirty" to "somewhat nice and structured"  
+- [ ] save and load settings (game path)  
+- [x] implement fmx/mediaplayer audio backend  
+- [x] conditionals for Win32 API  
+- [x] support more video types from the game  
+- [ ] support ALL video types from the game  
+- [ ] graphical audio indicators in file list  
+- [ ] video playback settings  
+- [ ] better A/V sync  
+- [ ] support converting videos to avi/mpg/mp4 etc with ffmpeg  
+- [ ] ... or via DShow on Win32  
+- [ ] write tests  
