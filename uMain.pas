@@ -7,7 +7,7 @@ uses
      FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Edit,
      FMX.Controls.Presentation, FMX.StdCtrls, FMX.Layouts, FMX.ExtCtrls,
      FMX.Memo.Types, FMX.ScrollBox, FMX.Memo, FMX.ListBox, FMX.Objects,
-     IAMovieDecoder, IAPalettes, IAUtils;
+     IAMovieDecoder, IAPaletteHandler, IAUtils;
 
 const
      GAME_PATH = 'C:\Games\Iron Assault\IRON';
@@ -142,7 +142,7 @@ procedure TForm1.FormCreate(Sender: TObject);
 begin
 {$IF CompilerVersion >= 35.0}
      Constraints.MinWidth := 894;
-     Constraints.MinHeight := 604;
+     Constraints.MinHeight := 643;
 {$IFEND}
      MovieDecoder := TIAMovieDecoder.Create(DrawFrame, ShowInfo);
      SetGamePath(GAME_PATH);
