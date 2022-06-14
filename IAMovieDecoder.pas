@@ -341,6 +341,7 @@ begin
      with videoThread do
      begin
 {$IFDEF USE_WIN32_API}
+{$WARN SYMBOL_PLATFORM OFF}
           Priority := TThreadPriority.tpHighest;
 {$ENDIF}
           FreeOnTerminate := True;
