@@ -24,6 +24,7 @@ type
                const Audio: TIAAudioType;
                const Palette: TIAPaletteType
           );
+          procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
           procedure Play;
           procedure Stop;
           procedure ForceStop;
@@ -45,6 +46,7 @@ type
           DynDelay: Integer;
           videoThread: TThread;
           ColorValueFunc: TColorValueFunc;
+          FCorrectAspectRatio: Boolean;
           FOnDrawFrame: TOnDrawFrame;
           FOnPlaybackDone: TOnPlaybackDone;
 
@@ -52,7 +54,7 @@ type
 
           procedure InitColorFunc(const Palette: TIAPaletteType);
 
-          procedure InitFrame;
+          procedure SetFrameSize; inline;
           function GetNextFrame: TBitmap;
           procedure DrawFrame(bmp: TBitmap);
 
@@ -71,10 +73,13 @@ type
           class var Stopping: Boolean;
           class var Playing: Boolean;
 
+          procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
+
+          property CorrectAspectRatio: Boolean read FCorrectAspectRatio write SetCorrectAspectRatio;
           property OnDrawFrame: TOnDrawFrame read FOnDrawFrame write FOnDrawFrame;
           property OnPlaybackDone: TOnPlaybackDone read FOnPlaybackDone write FOnPlaybackDone;
 
-          constructor Create(OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
+          constructor Create(const CorrectAspectRatio: Boolean; OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
 
           procedure SetEventHandlers(OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
           procedure SetGamePath(const GPath: string);
@@ -97,13 +102,14 @@ uses
 
 { TIAMovieDecoder }
 
-constructor TIAMovieDecoder.Create(OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
+constructor TIAMovieDecoder.Create(const CorrectAspectRatio: Boolean; OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
 begin
      Playing := False;
      Stopping := False;
      AudioHandler := TIAAudioHandler.Create;
      PaletteHandler := TIAPaletteHandler.Create;
      PaletteLoaded := False;
+     FCorrectAspectRatio := CorrectAspectRatio;
      SetEventHandlers(OnDrawFrame, OnPlaybackDone);
 end;
 
@@ -216,12 +222,10 @@ begin
           end;
      bmp.SaveToFile('11111.bmp');
      finally
+          SetFrameSize;
           bmp2 := TBitmap.Create;
           bmp2.Width := imgWidth;
-          if DoubleHeight then
-               bmp2.Height := imgHeight * 2
-          else
-               bmp2.Height := imgHeight;
+          bmp2.Height := Round(tgt.Height);
           with bmp2.Canvas do
           begin
                BeginScene;
@@ -243,13 +247,17 @@ begin
      ColorValueFunc := PaletteHandler.GetColorValueFunc(Palette);
 end;
 
-procedure TIAMovieDecoder.InitFrame;
+procedure TIAMovieDecoder.SetFrameSize;
+var
+     H: Integer;
 begin
+     H := imgHeight;
      src := RectF(0, 0, imgWidth, imgHeight);
      if DoubleHeight then
-          tgt := RectF(0, 0, imgWidth, imgHeight * 2)
-     else
-          tgt := RectF(0, 0, imgWidth, imgHeight);
+          H := H * 2;
+     if FCorrectAspectRatio then
+          H := Round(Double(H) * 1.2);
+     tgt := RectF(0, 0, imgWidth, H);
 end;
 
 procedure TIAMovieDecoder.LoadMovie(const VideoFN, AudioFN: string;
@@ -262,7 +270,6 @@ begin
      AudioType := Audio;
      LoadVideo(VideoFN);
      InitColorFunc(Palette);
-     InitFrame;
      PrepareAudio(AudioFN);
      PrepareVideo;
 end;
@@ -338,6 +345,11 @@ begin
 {$ENDIF}
           FreeOnTerminate := True;
      end;
+end;
+
+procedure TIAMovieDecoder.SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
+begin
+     FCorrectAspectRatio := CorrectAspectRatio;
 end;
 
 procedure TIAMovieDecoder.SetEventHandlers(OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);

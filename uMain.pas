@@ -36,6 +36,7 @@ type
           gbPalette: TGroupBox;
           rbDisableAudio: TRadioButton;
           Label2: TLabel;
+    cbAspRatioCorr: TCheckBox;
 
           procedure FormCreate(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -45,6 +46,7 @@ type
           procedure btnStopClick(Sender: TObject);
 
           procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
+    procedure cbAspRatioCorrChange(Sender: TObject);
      protected
           GamePath: string;
           PlayAudio: Boolean;
@@ -114,6 +116,11 @@ begin
      MovieDecoder.Stop;
 end;
 
+procedure TForm1.cbAspRatioCorrChange(Sender: TObject);
+begin
+     MovieDecoder.SetCorrectAspectRatio(cbAspRatioCorr.IsChecked);
+end;
+
 procedure TForm1.DisableLangs;
 begin
      rbEnglish.Enabled := False;
@@ -144,7 +151,7 @@ begin
      Constraints.MinWidth := 894;
      Constraints.MinHeight := 643;
 {$IFEND}
-     MovieDecoder := TIAMovieDecoder.Create(DrawFrame, ShowInfo);
+     MovieDecoder := TIAMovieDecoder.Create(True, DrawFrame, ShowInfo);
      SetGamePath(GAME_PATH);
      ImageViewer1.BitmapScale := 2;
 end;
