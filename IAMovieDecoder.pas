@@ -24,10 +24,13 @@ type
                const Audio: TIAAudioType;
                const Palette: TIAPaletteType
           );
-          procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
           procedure Play;
           procedure Stop;
           procedure ForceStop;
+
+          function GetCorrectAspectRatio: Boolean;
+          procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
+          property CorrectAspectRatio: Boolean read GetCorrectAspectRatio write SetCorrectAspectRatio;
      end;
 
      TIAMovieDecoder = class (TInterfacedObject, IIAMovieDecoder)
@@ -73,9 +76,10 @@ type
           class var Stopping: Boolean;
           class var Playing: Boolean;
 
+          function GetCorrectAspectRatio: Boolean;
           procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
 
-          property CorrectAspectRatio: Boolean read FCorrectAspectRatio write SetCorrectAspectRatio;
+          property CorrectAspectRatio: Boolean read GetCorrectAspectRatio write SetCorrectAspectRatio;
           property OnDrawFrame: TOnDrawFrame read FOnDrawFrame write FOnDrawFrame;
           property OnPlaybackDone: TOnPlaybackDone read FOnPlaybackDone write FOnPlaybackDone;
 
@@ -177,6 +181,11 @@ begin
                     OnPlaybackDone(frm, Stopwatch.ElapsedMilliseconds);
           end
      );
+end;
+
+function TIAMovieDecoder.GetCorrectAspectRatio: Boolean;
+begin
+     Result := FCorrectAspectRatio;
 end;
 
 function TIAMovieDecoder.GetNextFrame: TBitmap;

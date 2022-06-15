@@ -24,6 +24,7 @@ type
           procedure StopAudio;
 
           function GetDataCount: Integer;
+          property DataCount: Integer read GetDataCount;
      end;
 
      TIAAudioHandler = class(TInterfacedObject, IIAAudioHandler)
@@ -31,7 +32,7 @@ type
           Snd: TMemoryStream;
           SkipBuf: array of Byte;
           SkipCount: Integer;
-          DataCount: Integer;
+          FDataCount: Integer;
 {$IFNDEF USE_WIN32_API}
           AudioFN: string;
           MPlayer: TMediaPlayer;
@@ -49,6 +50,7 @@ type
           procedure StopAudio;
 
           function GetDataCount: Integer;
+          property DataCount: Integer read GetDataCount;
      end;
 
 
@@ -84,7 +86,7 @@ end;
 
 function TIAAudioHandler.GetDataCount: Integer;
 begin
-     Result := DataCount;
+     Result := FDataCount;
 end;
 
 {$IFNDEF USE_WIN32_API}
@@ -148,13 +150,13 @@ begin
 
      FS := TFileStream.Create(AudioFName, fmOpenRead);
      try
-          DataCount := FS.Size; // sound data
+          FDataCount := FS.Size; // sound data
 
           if OPT_USE_AUDIO_SKIP then
           begin
                if OPT_DYNAMIC_SKIPS then
                     InitSkipBuffer(Trunc(Single(DataCount) * AUDIO_SKIP_COEF));
-               Inc(DataCount, SkipCount);
+               Inc(FDataCount, SkipCount);
           end;
 
           if DataCount >= MAX_FILE_SIZE then
@@ -174,7 +176,7 @@ begin
                Write(TempInt, SizeOf(DWORD)); // TWaveFormat data size
                Write(WaveFormatEx, SizeOf(TWaveFormatEx)); // WaveFormatEx record
                Write(DataId[1], Length(DataId)); // 'data'
-               Write(DataCount, SizeOf(DWORD)); // sound data size
+               Write(FDataCount, SizeOf(DWORD)); // sound data size
                if OPT_USE_AUDIO_SKIP then
                     Write(SkipBuf[0], SkipCount);
                CopyFrom(FS, FS.Size);
