@@ -36,7 +36,7 @@ type
           gbPalette: TGroupBox;
           rbDisableAudio: TRadioButton;
           Label2: TLabel;
-    cbAspRatioCorr: TCheckBox;
+          cbAspRatioCorr: TCheckBox;
 
           procedure FormCreate(Sender: TObject);
           procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -46,7 +46,7 @@ type
           procedure btnStopClick(Sender: TObject);
 
           procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
-    procedure cbAspRatioCorrChange(Sender: TObject);
+          procedure cbAspRatioCorrChange(Sender: TObject);
      protected
           GamePath: string;
           PlayAudio: Boolean;
