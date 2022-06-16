@@ -93,10 +93,14 @@ begin
      try
           btnPlay.Enabled := False;
           btnStop.Enabled := True;
+          if PlayAudio then
+               DisableLangs;
           MovieDecoder.Play;
      except
           on E: Exception do
           begin
+               if PlayAudio then
+                    EnableLangs;
                btnPlay.Enabled := False;
                btnStop.Enabled := True;
                raise E;
@@ -130,6 +134,7 @@ begin
      rbEnglish.Enabled := False;
      rbFrench.Enabled := False;
      rbGerman.Enabled := False;
+     rbDisableAudio.Enabled := False;
 end;
 
 procedure TForm1.DrawFrame(bmp: TBitmap);
@@ -142,6 +147,7 @@ begin
      rbEnglish.Enabled := True;
      rbFrench.Enabled := True;
      rbGerman.Enabled := True;
+     rbDisableAudio.Enabled := True;
 end;
 
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -311,6 +317,7 @@ procedure TForm1.ShowInfo(const frames, msec: Int64);
 var
      sec: Double;
 begin
+     EnableLangs;
      sec := Double(msec) / 1000;
      mInfo.Lines.Add(Format(FMT_MOVIE_INFO, [frames, sec, Double(frames) / sec]));
      btnPlay.Enabled := GameFilesList.Selected <> nil;
