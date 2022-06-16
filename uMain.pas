@@ -47,6 +47,10 @@ type
 
           procedure GameFilesListItemClick(const Sender: TCustomListBox; const Item: TListBoxItem);
           procedure cbAspRatioCorrChange(Sender: TObject);
+          procedure rbPaletteBlueChange(Sender: TObject);
+          procedure rbPaletteRedChange(Sender: TObject);
+          procedure rbPaletteGoldenChange(Sender: TObject);
+          procedure rbPaletteTealChange(Sender: TObject);
      protected
           GamePath: string;
           PlayAudio: Boolean;
@@ -211,6 +215,30 @@ end;
 function TForm1.GetSelectedPalette: TIAPaletteType;
 begin
      Result := TIAPaletteType(GetCheckedRadioButton([rbPaletteBlue, rbPaletteRed, rbPaletteGolden, rbPaletteTeal]).Tag);
+end;
+
+procedure TForm1.rbPaletteBlueChange(Sender: TObject);
+begin
+     if Assigned(MovieDecoder) then
+          MovieDecoder.PaletteType := Blue;
+end;
+
+procedure TForm1.rbPaletteGoldenChange(Sender: TObject);
+begin
+     if Assigned(MovieDecoder) then
+          MovieDecoder.PaletteType := Golden;
+end;
+
+procedure TForm1.rbPaletteRedChange(Sender: TObject);
+begin
+     if Assigned(MovieDecoder) then
+          MovieDecoder.PaletteType := Red;
+end;
+
+procedure TForm1.rbPaletteTealChange(Sender: TObject);
+begin
+     if Assigned(MovieDecoder) then
+          MovieDecoder.PaletteType := Teal;
 end;
 
 procedure TForm1.ScanForGameFiles;

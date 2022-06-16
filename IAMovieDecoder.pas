@@ -30,7 +30,11 @@ type
 
           function GetCorrectAspectRatio: Boolean;
           procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
+          procedure SetPaletteType(const APaletteType: TIAPaletteType);
+          function GetPaletteType: TIAPaletteType;
+
           property CorrectAspectRatio: Boolean read GetCorrectAspectRatio write SetCorrectAspectRatio;
+          property PaletteType: TIAPaletteType read GetPaletteType write SetPaletteType;
      end;
 
      TIAMovieDecoder = class (TInterfacedObject, IIAMovieDecoder)
@@ -49,6 +53,8 @@ type
           DynDelay: Integer;
           videoThread: TThread;
           ColorValueFunc: TColorValueFunc;
+
+          FPaletteType: TIAPaletteType;
           FCorrectAspectRatio: Boolean;
           FOnDrawFrame: TOnDrawFrame;
           FOnPlaybackDone: TOnPlaybackDone;
@@ -79,9 +85,13 @@ type
           function GetCorrectAspectRatio: Boolean;
           procedure SetCorrectAspectRatio(const CorrectAspectRatio: Boolean);
 
+          procedure SetPaletteType(const APaletteType: TIAPaletteType);
+          function GetPaletteType: TIAPaletteType;
+
           property CorrectAspectRatio: Boolean read GetCorrectAspectRatio write SetCorrectAspectRatio;
           property OnDrawFrame: TOnDrawFrame read FOnDrawFrame write FOnDrawFrame;
           property OnPlaybackDone: TOnPlaybackDone read FOnPlaybackDone write FOnPlaybackDone;
+          property PaletteType: TIAPaletteType read GetPaletteType write SetPaletteType;
 
           constructor Create(const CorrectAspectRatio: Boolean; OnDrawFrame: TOnDrawFrame; OnPlaybackDone: TOnPlaybackDone);
 
@@ -159,7 +169,12 @@ begin
                Stopping := False;
                Break;
           end;
-          bmp := GetNextFrame;
+          System.TMonitor.Enter(Self);
+          try
+               bmp := GetNextFrame;
+          finally
+               System.TMonitor.Exit(Self);
+          end;
           DrawFrame(bmp);
           Inc(frm);
           Delay := Stopwatch.ElapsedMilliseconds - FrameStart;
@@ -244,6 +259,16 @@ begin
           FreeAndNil(bmp);
      end;
      Result := bmp2;
+end;
+
+function TIAMovieDecoder.GetPaletteType: TIAPaletteType;
+begin
+     System.TMonitor.Enter(Self);
+     try
+          Result := FPaletteType;
+     finally
+          System.TMonitor.Exit(Self);
+     end;
 end;
 
 function TIAMovieDecoder.HasAudio: Boolean;
@@ -372,6 +397,17 @@ procedure TIAMovieDecoder.SetGamePath(const GPath: string);
 begin
      GamePath := GPath;
      LoadPalettes;
+end;
+
+procedure TIAMovieDecoder.SetPaletteType(const APaletteType: TIAPaletteType);
+begin
+     System.TMonitor.Enter(Self);
+     try
+          FPaletteType := APaletteType;
+          InitColorFunc(FPaletteType);
+     finally
+          System.TMonitor.Exit(Self);
+     end;
 end;
 
 procedure TIAMovieDecoder.StartAudio;
