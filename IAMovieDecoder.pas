@@ -244,7 +244,6 @@ begin
                bmp.Unmap(bd);
                DataOfs := i;
           end;
-     bmp.SaveToFile('11111.bmp');
      finally
           SetFrameSize;
           bmp2 := TBitmap.Create;
