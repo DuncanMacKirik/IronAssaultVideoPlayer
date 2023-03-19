@@ -1,6 +1,6 @@
 # IronAssaultVideoPlayer
   
-## What it it?  
+## What is it?  
 It is a player for in-game videos of the 1996 MS-DOS game Iron Assault. It was about piloting giant battle robots in a future war against an evil corporation.
  It had FMVs (full-motion videos), they were monochrome and low-budget, shot mostly with miniatures and stop-motion, but it's obvious today. And back then it meant one thing - THESE ROBOTS WERE REAL! It seemed quite impressive. Or maybe it was because of my young age 😄
 
@@ -39,7 +39,7 @@ Pixel order in usual (linear) mode:
 3 of the palettes ("standard"/blue, "emergency"/red and "evening"/golden) are stored in FILMS\FILM.LZ, and another one ("report"/teal), used in briefing videos, is found in multiple files, including E_MAIN\BACKTXT.LZ. Some videos can be seen in the game multiple times with different palettes.  
   
 ### Audio info  
-Headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
+Again, nothing special: headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
 
 ## TODO  
 - [x] upgrade code quality level from "quick-and-dirty" to "somewhat nice and structured"  
@@ -53,4 +53,5 @@ Headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of
 - [ ] better A/V sync  
 - [ ] support converting videos to avi/mpg/mp4 etc with ffmpeg  
 - [ ] ... or via DirectShow on Win32  
+- [ ] implement more patterns :-)  
 - [ ] write tests  
