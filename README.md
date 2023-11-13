@@ -7,6 +7,9 @@ It is a player for in-game videos of the 1996 MS-DOS game Iron Assault. It was a
 ## Why make it?  
 From the moment I first saw the game (around 1997-98 I think), I remembered its distinctive videos and kept thinking, 'How are they stored?'. Well, now, 27 years after the game release, I went and looked how :-)  
 I saw many similar projects for more popular retro games; in fact, there is either a remake or a tool collection for almost any other old game with FMVs. But I never found one for the Iron Assault.  
+  
+## What is its current status? 
+4/5 (mostly done/beta version). Buildable and usable, but there is certainly more room for improvement.
 
 ## What is it made with?  
 Delphi 10.x, Firemonkey framework (it's possible to modify it to be compiled with VCL, but what's the point). It can be compiled for non-Windows platforms and run there (checked with Debian Linux 11 x64).  
@@ -15,7 +18,7 @@ Delphi 10.x, Firemonkey framework (it's possible to modify it to be compiled wit
 In order to be able to compile for non-Windows target, check that the USE_WIN32_APIS define is not set, so the app uses a TMediaPlayer component for audio playback. When only Windows support is needed, it's better to enable this conditional define, because it uses more efficient Win32 API and plays audio directly from memory, without using temp files.  
   
 ### NOTE 2  
-In order to be able to hear audio on Linux without crashing, you must have VLC installed (it is a requirement of TMediaPlayer).
+In order to be able to hear audio on Linux without crashing, you must have VLC installed (it is a requirement of the TMediaPlayer component).
   
 ## So, how are the videos stored?  
 Nothing tricky, compared to other titles with their own video codecs, tricky compression schemes and so on. But still it took some time figuring it out.  
