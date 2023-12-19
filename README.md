@@ -18,7 +18,7 @@ Delphi 10.x, Firemonkey framework (it's possible to modify it to be compiled wit
 In order to be able to compile for non-Windows target, check that the USE_WIN32_APIS define is not set, so the app uses a TMediaPlayer component for audio playback. When only Windows support is needed, it's better to enable this conditional define, because it uses more efficient Win32 API and plays audio directly from memory, without using temp files.  
   
 ### NOTE 2  
-In order to be able to hear audio on Linux without crashing, you must have VLC installed (it is a requirement of the TMediaPlayer component).
+In order to be able to hear audio on Linux without crashing, you must have VLC installed (it seems to be a requirement of the TMediaPlayer component?).
   
 ## So, how are the videos stored?  
 Nothing tricky, compared to other titles with their own video codecs, tricky compression schemes and so on. But still it took some time figuring it out.  
@@ -42,7 +42,7 @@ Pixel order in usual (linear) mode:
 3 of the palettes ("standard"/blue, "emergency"/red and "evening"/golden) are stored in FILMS\FILM.LZ, and another one ("report"/teal), used in briefing videos, is found in multiple files, including E_MAIN\BACKTXT.LZ. Some videos can be seen in the game multiple times with different palettes.  
   
 ### Audio info  
-Again, nothing special: headerless unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
+Again, nothing special: no header, unsigned 8-bit, 11025 Hz, mono, usually stored separately for each of 3 languages.  
 
 ## TODO  
 - [x] upgrade code quality level from "quick-and-dirty" to "somewhat nice and structured"  
@@ -53,7 +53,8 @@ Again, nothing special: headerless unsigned 8-bit, 11025 Hz, mono, usually store
 - [ ] support ALL video types from the game  
 - [ ] graphical audio indicators in file list  
 - [ ] video playback settings  
-- [ ] better A/V sync  
+- [ ] better A/V sync
+- [ ] better audio support on Unix/Linux (ALSA? UOS?)  
 - [ ] support converting videos to avi/mpg/mp4 etc with ffmpeg  
 - [ ] ... or via DirectShow on Win32  
 - [ ] implement more patterns :-)  
